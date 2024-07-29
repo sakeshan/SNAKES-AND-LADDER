@@ -1,0 +1,114 @@
+import tkinter as tk
+import random
+
+BOARD_SIZE = 10 
+SQUARE_SIZE = 40  
+SNAKES = {18:6 , 47: 26, 49: 11, 62: 19, 74: 24, 93: 73, 95: 75, 98: 80} 
+LADDERS = { 4: 15, 9: 31, 21: 42, 28: 84, 51: 67, 71: 91, }  
+
+class SnakesAndLaddersGame:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Snakes and Ladders Game")
+
+        self.canvas = tk.Canvas(self.master, width=BOARD_SIZE * SQUARE_SIZE, height=BOARD_SIZE * SQUARE_SIZE)
+        self.canvas.pack()
+
+        self.create_board()
+        self.create_snakes_and_ladders()
+
+        self.player_position = [0, 0]  
+        self.current_player = 0  
+
+        self.roll_button = tk.Button(self.master, text="Roll Dice", command=self.roll_dice)
+        self.roll_button.pack()
+
+        self.dice_label = tk.Label(self.master, text="")
+        self.dice_label.pack()
+
+        self.info_label = tk.Label(self.master, text="Player 1's turn")
+        self.info_label.pack()
+
+    def create_board(self):
+        for row in range(BOARD_SIZE):
+            for col in range(BOARD_SIZE):
+                x1 = col * SQUARE_SIZE
+                y1 = (BOARD_SIZE - row - 1) * SQUARE_SIZE
+                x2 = x1 + SQUARE_SIZE
+                y2 = y1 + SQUARE_SIZE
+                fill_color = "lightblue" if (row + col) % 2 == 0 else "lightgreen"
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=fill_color, outline="black")
+
+                if row % 2 == 0:
+                    board_num = row * BOARD_SIZE + col + 1
+                else:
+                    board_num = row * BOARD_SIZE + (BOARD_SIZE - col)
+                self.canvas.create_text(x1 + 20, y1 + 20, text=str(board_num), font=("Arial", 10, "bold"))
+
+    def create_snakes_and_ladders(self):
+        for start, end in LADDERS.items():
+            start_x, start_y = self.get_coords(start)
+            end_x, end_y = self.get_coords(end)
+            self.canvas.create_line(start_x, start_y, end_x, end_y, fill="green", width=5, arrow=tk.LAST)
+
+        for start, end in SNAKES.items():
+            start_x, start_y = self.get_coords(start)
+            end_x, end_y = self.get_coords(end)
+            self.canvas.create_line(start_x, start_y, end_x, end_y, fill="red", width=5, arrow=tk.LAST)
+
+    def get_coords(self, position):
+        row = (position - 1) // BOARD_SIZE
+        col = (position - 1) % BOARD_SIZE
+        if row % 2 == 0:
+            x = col * SQUARE_SIZE + 20
+        else:
+            x = (BOARD_SIZE - col - 1) * SQUARE_SIZE + 20
+        y = (BOARD_SIZE - 1 - row) * SQUARE_SIZE + 20
+        return x, y
+
+    def roll_dice(self):
+        dice_roll = random.randint(1, 6)
+        self.dice_label.config(text=f"Dice rolled: {dice_roll}")
+        self.info_label.config(text=f"Player {self.current_player + 1} rolled a {dice_roll}")
+
+        new_position = self.player_position[self.current_player] + dice_roll
+
+
+        if new_position > 100:
+            self.info_label.config(text=f"Player {self.current_player + 1}'s turn: cannot move beyond 100")
+        else:
+            self.player_position[self.current_player] = new_position
+
+            if self.player_position[self.current_player] in SNAKES:
+                self.player_position[self.current_player] = SNAKES[self.player_position[self.current_player]]
+            elif self.player_position[self.current_player] in LADDERS:
+                self.player_position[self.current_player] = LADDERS[self.player_position[self.current_player]]
+
+            if self.player_position[self.current_player] == 100:
+                self.update_board()
+                self.info_label.config(text=f"Player {self.current_player + 1} wins!")
+                self.roll_button.config(state=tk.DISABLED)  
+                return
+
+        self.update_board()
+
+        self.current_player = 1 - self.current_player
+        self.info_label.config(text=f"Player {self.current_player + 1}'s turn")
+
+    def update_board(self):
+        self.canvas.delete("players")  
+
+        for i, pos in enumerate(self.player_position):
+            if pos > 0:  
+                x, y = self.get_coords(pos)
+                x -= 10  
+                y -= 10
+                color = "blue" if i == 0 else "red"
+                self.canvas.create_oval(x, y, x + 20, y + 20, fill=color, tags="players")  
+
+        self.canvas.update()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    game = SnakesAndLaddersGame(root)
+    root.mainloop()
